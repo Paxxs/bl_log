@@ -60,6 +60,69 @@ function normalizeImagePaths(value) {
   return list;
 }
 
+function normalizeFields(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const fields = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') {
+      return null;
+    }
+
+    const key = typeof item.key === 'string' ? item.key.trim() : '';
+    if (!key) {
+      return null;
+    }
+
+    if (item.type === 'text') {
+      const textValue = typeof item.textValue === 'string' ? item.textValue.trim() : '';
+      if (!textValue) {
+        continue;
+      }
+
+      fields.push({
+        key,
+        type: 'text',
+        textValue,
+        imagePath: null
+      });
+      continue;
+    }
+
+    if (item.type === 'image') {
+      const imagePath = validateStoredPath(item.imagePath, 'images');
+      if (!imagePath) {
+        return null;
+      }
+
+      fields.push({
+        key,
+        type: 'image',
+        textValue: null,
+        imagePath
+      });
+      continue;
+    }
+
+    return null;
+  }
+
+  return fields;
+}
+
+function getFieldImagePaths(fields) {
+  return fields
+    .filter((field) => field.type === 'image' && typeof field.imagePath === 'string')
+    .map((field) => field.imagePath);
+}
+
 function toSummary(entry) {
   return {
     id: entry.id,
@@ -81,6 +144,7 @@ function toDetail(entry) {
     iconUrl: entry.iconPath ? `/files/${entry.iconPath}` : DEFAULT_ICON_URL,
     images: entry.images,
     imageUrls: entry.images.map((imagePath) => `/files/${imagePath}`),
+    fields: entry.fields,
     createdAt: entry.createdAt,
     updatedAt: entry.updatedAt
   };
@@ -129,6 +193,7 @@ export function createApp(options = {}) {
     const noteText = normalizeNoteText(req.body.noteText);
     const iconPath = normalizeIconPath(req.body.iconPath);
     const images = normalizeImagePaths(req.body.images || []);
+    const fields = normalizeFields(req.body.fields === undefined ? [] : req.body.fields);
 
     if (!keyword) {
       return res.status(400).json({ error: 'keyword is required.' });
@@ -142,7 +207,11 @@ export function createApp(options = {}) {
       return res.status(400).json({ error: 'Invalid images list.' });
     }
 
-    const id = repo.createEntry({ keyword, noteText, iconPath, images });
+    if (!fields) {
+      return res.status(400).json({ error: 'Invalid fields list.' });
+    }
+
+    const id = repo.createEntry({ keyword, noteText, iconPath, images, fields });
     return res.status(201).json({ id });
   });
 
@@ -202,7 +271,16 @@ export function createApp(options = {}) {
       images = normalizedImages;
     }
 
-    const updated = repo.updateEntry(id, { keyword, noteText, iconPath, images });
+    let fields = current.fields;
+    if (req.body.fields !== undefined) {
+      const normalizedFields = normalizeFields(req.body.fields);
+      if (!normalizedFields) {
+        return res.status(400).json({ error: 'Invalid fields list.' });
+      }
+      fields = normalizedFields;
+    }
+
+    const updated = repo.updateEntry(id, { keyword, noteText, iconPath, images, fields });
     if (!updated) {
       return res.status(404).json({ error: 'Entry not found.' });
     }
@@ -213,6 +291,14 @@ export function createApp(options = {}) {
 
     for (const imagePath of current.images) {
       if (!images.includes(imagePath)) {
+        deleteStoredFile(dataDir, imagePath);
+      }
+    }
+
+    const currentFieldImages = getFieldImagePaths(current.fields);
+    const nextFieldImages = getFieldImagePaths(fields);
+    for (const imagePath of currentFieldImages) {
+      if (!nextFieldImages.includes(imagePath)) {
         deleteStoredFile(dataDir, imagePath);
       }
     }
@@ -236,6 +322,10 @@ export function createApp(options = {}) {
     }
 
     for (const imagePath of deleted.images) {
+      deleteStoredFile(dataDir, imagePath);
+    }
+
+    for (const imagePath of getFieldImagePaths(deleted.fields)) {
       deleteStoredFile(dataDir, imagePath);
     }
 

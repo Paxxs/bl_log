@@ -22,5 +22,6 @@ describe('initDb', () => {
 
     expect(tables).toContain('entries');
     expect(tables).toContain('entry_images');
+    expect(tables).toContain('entry_fields');
   });
 });

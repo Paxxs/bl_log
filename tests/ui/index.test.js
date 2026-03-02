@@ -28,5 +28,7 @@ describe('web ui', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('id="keyword-search-input"');
+    expect(res.text).toContain('id="custom-fields-list"');
+    expect(res.text).toContain('data-default-field="wechat_id"');
   });
 });

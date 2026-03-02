@@ -1,8 +1,29 @@
+function createDefaultField() {
+  return {
+    key: 'wechat_id',
+    type: 'text',
+    textValue: '',
+    imagePath: null,
+    pendingFile: null
+  };
+}
+
+function createFieldFromDetail(field) {
+  return {
+    key: field.key,
+    type: field.type,
+    textValue: field.textValue || '',
+    imagePath: field.imagePath || null,
+    pendingFile: null
+  };
+}
+
 const state = {
   items: [],
   currentId: null,
   currentIconPath: null,
-  currentImages: []
+  currentImages: [],
+  currentFields: [createDefaultField()]
 };
 
 const els = {
@@ -15,6 +36,8 @@ const els = {
   iconFile: document.getElementById('icon-file-input'),
   imagesFile: document.getElementById('images-file-input'),
   imageList: document.getElementById('image-list'),
+  customFieldsList: document.getElementById('custom-fields-list'),
+  addCustomFieldBtn: document.getElementById('add-custom-field-btn'),
   deleteBtn: document.getElementById('delete-entry-btn'),
   status: document.getElementById('status-text')
 };
@@ -31,6 +54,12 @@ async function fetchJson(url, options = {}) {
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
   return payload;
+}
+
+function ensureAtLeastOneFieldRow() {
+  if (state.currentFields.length === 0) {
+    state.currentFields = [createDefaultField()];
+  }
 }
 
 function renderResults() {
@@ -87,15 +116,111 @@ function renderImageList() {
   }
 }
 
+function renderCustomFields() {
+  ensureAtLeastOneFieldRow();
+  els.customFieldsList.innerHTML = '';
+
+  state.currentFields.forEach((field, index) => {
+    const row = document.createElement('div');
+    row.className = 'custom-field-row';
+
+    const keyInput = document.createElement('input');
+    keyInput.type = 'text';
+    keyInput.placeholder = 'key';
+    keyInput.value = field.key;
+    keyInput.addEventListener('input', () => {
+      field.key = keyInput.value;
+    });
+
+    const typeSelect = document.createElement('select');
+    const textOption = document.createElement('option');
+    textOption.value = 'text';
+    textOption.textContent = 'text';
+    const imageOption = document.createElement('option');
+    imageOption.value = 'image';
+    imageOption.textContent = 'image';
+    typeSelect.append(textOption, imageOption);
+    typeSelect.value = field.type;
+
+    typeSelect.addEventListener('change', () => {
+      field.type = typeSelect.value;
+      if (field.type === 'text') {
+        field.imagePath = null;
+        field.pendingFile = null;
+      } else {
+        field.textValue = '';
+      }
+      renderCustomFields();
+    });
+
+    const valueWrap = document.createElement('div');
+    valueWrap.className = 'custom-field-value';
+
+    if (field.type === 'text') {
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.placeholder = 'value';
+      textInput.value = field.textValue;
+      textInput.addEventListener('input', () => {
+        field.textValue = textInput.value;
+      });
+      valueWrap.appendChild(textInput);
+    } else {
+      const imageInput = document.createElement('input');
+      imageInput.type = 'file';
+      imageInput.accept = 'image/*';
+      imageInput.addEventListener('change', () => {
+        field.pendingFile = imageInput.files?.[0] || null;
+      });
+      valueWrap.appendChild(imageInput);
+
+      if (field.imagePath) {
+        const preview = document.createElement('img');
+        preview.className = 'custom-field-preview';
+        preview.src = `/files/${field.imagePath}`;
+        preview.alt = 'field image';
+        valueWrap.appendChild(preview);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.textContent = '清除';
+        clearBtn.addEventListener('click', () => {
+          field.imagePath = null;
+          field.pendingFile = null;
+          renderCustomFields();
+        });
+        valueWrap.appendChild(clearBtn);
+      }
+    }
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '删除';
+    removeBtn.addEventListener('click', () => {
+      state.currentFields.splice(index, 1);
+      ensureAtLeastOneFieldRow();
+      renderCustomFields();
+    });
+
+    row.appendChild(keyInput);
+    row.appendChild(typeSelect);
+    row.appendChild(valueWrap);
+    row.appendChild(removeBtn);
+    els.customFieldsList.appendChild(row);
+  });
+}
+
 function resetForm() {
   state.currentId = null;
   state.currentIconPath = null;
   state.currentImages = [];
+  state.currentFields = [createDefaultField()];
   els.keyword.value = '';
   els.noteText.value = '';
   els.iconFile.value = '';
   els.imagesFile.value = '';
   renderImageList();
+  renderCustomFields();
   renderResults();
 }
 
@@ -103,11 +228,17 @@ function applyEntry(entry) {
   state.currentId = entry.id;
   state.currentIconPath = entry.iconPath;
   state.currentImages = entry.images.slice();
+  state.currentFields =
+    Array.isArray(entry.fields) && entry.fields.length > 0
+      ? entry.fields.map(createFieldFromDetail)
+      : [createDefaultField()];
+
   els.keyword.value = entry.keyword;
   els.noteText.value = entry.noteText;
   els.iconFile.value = '';
   els.imagesFile.value = '';
   renderImageList();
+  renderCustomFields();
   renderResults();
 }
 
@@ -116,6 +247,45 @@ async function uploadFile(file, url) {
   formData.append('file', file);
   const result = await fetchJson(url, { method: 'POST', body: formData });
   return result.path;
+}
+
+async function buildFieldsPayload() {
+  const fields = [];
+
+  for (const field of state.currentFields) {
+    const key = field.key.trim();
+
+    if (field.type === 'text') {
+      const textValue = field.textValue.trim();
+      if (!textValue) {
+        continue;
+      }
+
+      if (!key) {
+        throw new Error('字段 key 不能为空。');
+      }
+
+      fields.push({ key, type: 'text', textValue });
+      continue;
+    }
+
+    let imagePath = field.imagePath;
+    if (field.pendingFile) {
+      imagePath = await uploadFile(field.pendingFile, '/api/upload/image');
+    }
+
+    if (!imagePath) {
+      continue;
+    }
+
+    if (!key) {
+      throw new Error('字段 key 不能为空。');
+    }
+
+    fields.push({ key, type: 'image', imagePath });
+  }
+
+  return fields;
 }
 
 async function openEntry(id) {
@@ -155,7 +325,8 @@ async function handleSave(event) {
     }
 
     const images = [...state.currentImages, ...newImages];
-    const payload = { keyword, noteText, iconPath, images };
+    const fields = await buildFieldsPayload();
+    const payload = { keyword, noteText, iconPath, images, fields };
 
     if (state.currentId) {
       await fetchJson(`/api/entries/${state.currentId}`, {
@@ -227,6 +398,10 @@ els.form.addEventListener('submit', (event) => {
 els.newBtn.addEventListener('click', () => {
   resetForm();
   setStatus('已切换到新建模式。');
+});
+els.addCustomFieldBtn.addEventListener('click', () => {
+  state.currentFields.push({ key: '', type: 'text', textValue: '', imagePath: null, pendingFile: null });
+  renderCustomFields();
 });
 els.deleteBtn.addEventListener('click', () => {
   handleDelete();

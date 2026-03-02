@@ -74,6 +74,95 @@ describe('entries api', () => {
     expect(detail.body.images).toEqual([imageRes.body.path]);
   });
 
+  it('stores custom fields and searches only by field value', async () => {
+    const app = newApp();
+
+    const imageRes = await request(app)
+      .post('/api/upload/image')
+      .attach('file', pngBuffer, 'field.png');
+
+    const createRes = await request(app).post('/api/entries').send({
+      keyword: 'custom-entry',
+      noteText: 'note-without-keyword',
+      iconPath: null,
+      images: [],
+      fields: [
+        { key: 'wechat_id', type: 'text', textValue: 'WSC6688' },
+        { key: 'profile_qr', type: 'image', imagePath: imageRes.body.path }
+      ]
+    });
+    expect(createRes.status).toBe(201);
+
+    const detail = await request(app).get(`/api/entries/${createRes.body.id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.fields).toEqual([
+      { key: 'wechat_id', type: 'text', textValue: 'WSC6688', imagePath: null },
+      { key: 'profile_qr', type: 'image', textValue: null, imagePath: imageRes.body.path }
+    ]);
+
+    const byFieldValue = await request(app).get('/api/search').query({ q: 'WSC6688' });
+    expect(byFieldValue.status).toBe(200);
+    expect(byFieldValue.body.items.some((item) => item.id === createRes.body.id)).toBe(true);
+
+    const byFieldKey = await request(app).get('/api/search').query({ q: 'wechat_id' });
+    expect(byFieldKey.status).toBe(200);
+    expect(byFieldKey.body.items.some((item) => item.id === createRes.body.id)).toBe(false);
+  });
+
+  it('does not persist empty default wechat_id text field', async () => {
+    const app = newApp();
+
+    const createRes = await request(app).post('/api/entries').send({
+      keyword: 'empty-wechat',
+      noteText: 'note',
+      iconPath: null,
+      images: [],
+      fields: [{ key: 'wechat_id', type: 'text', textValue: '' }]
+    });
+    expect(createRes.status).toBe(201);
+
+    const detail = await request(app).get(`/api/entries/${createRes.body.id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.fields).toEqual([]);
+  });
+
+  it('updates custom fields and removes previous search value', async () => {
+    const app = newApp();
+
+    const createRes = await request(app).post('/api/entries').send({
+      keyword: 'update-fields',
+      noteText: 'note',
+      iconPath: null,
+      images: [],
+      fields: [{ key: 'wechat_id', type: 'text', textValue: 'old-field-value' }]
+    });
+    expect(createRes.status).toBe(201);
+
+    const updateRes = await request(app).put(`/api/entries/${createRes.body.id}`).send({
+      fields: [{ key: 'wechat_id', type: 'text', textValue: 'new-field-value' }]
+    });
+    expect(updateRes.status).toBe(200);
+
+    const oldSearch = await request(app).get('/api/search').query({ q: 'old-field-value' });
+    const newSearch = await request(app).get('/api/search').query({ q: 'new-field-value' });
+
+    expect(oldSearch.body.items.some((item) => item.id === createRes.body.id)).toBe(false);
+    expect(newSearch.body.items.some((item) => item.id === createRes.body.id)).toBe(true);
+  });
+
+  it('rejects custom image field with invalid path', async () => {
+    const app = newApp();
+
+    const createRes = await request(app).post('/api/entries').send({
+      keyword: 'invalid-image-field',
+      noteText: 'note',
+      iconPath: null,
+      images: [],
+      fields: [{ key: 'bad', type: 'image', imagePath: '../a.png' }]
+    });
+    expect(createRes.status).toBe(400);
+  });
+
   it('updates then deletes an entry', async () => {
     const app = newApp();
 

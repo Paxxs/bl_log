@@ -96,6 +96,47 @@ label {
   font-size: 13px;
 }
 
+.custom-fields-section {
+  border: 1px solid #d8dde6;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.custom-fields-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+#custom-fields-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-field-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-field-value {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.custom-field-preview {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border: 1px solid #c8cfdb;
+  border-radius: 6px;
+}
+
 input,
 textarea,
 button {
@@ -104,6 +145,7 @@ button {
 
 input,
 textarea {
+  font-size: 16px;
   width: 100%;
   border: 1px solid #c8cfdb;
   border-radius: 6px;
@@ -163,6 +205,10 @@ button {
 
 @media (max-width: 860px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-field-row {
     grid-template-columns: 1fr;
   }
 }

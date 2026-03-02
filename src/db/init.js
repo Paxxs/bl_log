@@ -23,6 +23,17 @@ export function initDb(filePath) {
       sort_order INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS entry_fields (
+      id INTEGER PRIMARY KEY,
+      entry_id INTEGER NOT NULL,
+      field_key TEXT NOT NULL,
+      field_type TEXT NOT NULL,
+      text_value TEXT,
+      image_path TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
+    );
   `);
   db.close();
 }

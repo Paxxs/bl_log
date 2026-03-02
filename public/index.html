@@ -1,62 +1,95 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>本地关键词备注</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main class="layout">
-      <section class="panel search-panel">
-        <div class="search-header">
-          <input id="keyword-search-input" type="search" placeholder="搜索关键词或备注正文" autocomplete="off" />
-          <button id="new-entry-btn" type="button">新建</button>
-        </div>
-        <ul id="results-list" class="results-list"></ul>
-      </section>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>本地关键词备注</title>
+        <link rel="stylesheet" href="/styles.css" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, user-scalable=no"
+        />
+    </head>
+    <body>
+        <main class="layout">
+            <section class="panel search-panel">
+                <div class="search-header">
+                    <input
+                        id="keyword-search-input"
+                        type="search"
+                        placeholder="搜索关键词或备注正文"
+                        autocomplete="off"
+                    />
+                    <button id="new-entry-btn" type="button">新建</button>
+                </div>
+                <ul id="results-list" class="results-list"></ul>
+            </section>
 
-      <section class="panel editor-panel">
-        <form id="entry-form" class="entry-form">
-          <label>
-            关键词
-            <input id="keyword-input" name="keyword" required />
-          </label>
+            <section class="panel editor-panel">
+                <form id="entry-form" class="entry-form">
+                    <label>
+                        关键词
+                        <input id="keyword-input" name="keyword" required />
+                    </label>
 
-          <label>
-            备注文本
-            <textarea id="note-text-input" name="noteText" rows="8"></textarea>
-          </label>
+                    <label>
+                        备注文本
+                        <textarea
+                            id="note-text-input"
+                            name="noteText"
+                            rows="8"
+                        ></textarea>
+                    </label>
 
-          <section class="custom-fields-section">
-            <div class="custom-fields-head">
-              <span>自定义键值对</span>
-              <button id="add-custom-field-btn" type="button">添加字段</button>
-            </div>
-            <div id="custom-fields-list" data-default-field="wechat_id"></div>
-          </section>
+                    <section class="custom-fields-section">
+                        <div class="custom-fields-head">
+                            <span>自定义键值对</span>
+                            <button id="add-custom-field-btn" type="button">
+                                添加字段
+                            </button>
+                        </div>
+                        <div
+                            id="custom-fields-list"
+                            data-default-field="wechat_id"
+                        ></div>
+                    </section>
 
-          <label>
-            头像图标（可选）
-            <input id="icon-file-input" type="file" accept="image/*" />
-          </label>
+                    <label>
+                        头像图标（可选）
+                        <input
+                            id="icon-file-input"
+                            type="file"
+                            accept="image/*"
+                        />
+                    </label>
 
-          <label>
-            正文图片（可多选）
-            <input id="images-file-input" type="file" accept="image/*" multiple />
-          </label>
+                    <label>
+                        正文图片（可多选）
+                        <input
+                            id="images-file-input"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                        />
+                    </label>
 
-          <div id="image-list" class="image-list"></div>
+                    <div id="image-list" class="image-list"></div>
 
-          <div class="actions">
-            <button type="submit">保存</button>
-            <button id="delete-entry-btn" type="button">删除</button>
-          </div>
-          <p id="status-text" class="status-text" aria-live="polite"></p>
-        </form>
-      </section>
-    </main>
+                    <div class="actions">
+                        <button type="submit">保存</button>
+                        <button id="delete-entry-btn" type="button">
+                            删除
+                        </button>
+                    </div>
+                    <p
+                        id="status-text"
+                        class="status-text"
+                        aria-live="polite"
+                    ></p>
+                </form>
+            </section>
+        </main>
 
-    <script type="module" src="/app.js"></script>
-  </body>
+        <script type="module" src="/app.js"></script>
+    </body>
 </html>

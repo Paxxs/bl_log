@@ -8,13 +8,13 @@
 
 ## 运行环境
 
-- Node.js 22+
+- Bun 1.3+
 
 ## 安装与启动
 
 ```bash
-npm install
-npm start
+bun install
+bun run start
 ```
 
 浏览器打开：`http://127.0.0.1:3000`
@@ -22,13 +22,13 @@ npm start
 ## 开发模式
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 ## 测试
 
 ```bash
-npm test
+bun run test
 ```
 
 ## 本地数据目录
